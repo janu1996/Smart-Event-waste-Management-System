@@ -1,0 +1,1651 @@
+Smart Event Resource & Waste Lifecycle Management System
+
+=========================================
+       CFREATE DATABASE
+=========================================
+
+mysql> CREATE DATABASE smart_event_management;
+Query OK, 1 row affected (0.01 sec)
+
+mysql> USE smart_event_management;
+Database changed
+========================================
+          CREATE TABLES
+========================================
+
+mysql> -- 1. EVENT ORGANIZERS
+
+mysql> CREATE TABLE event_organizers (
+    ->     organizer_id INT PRIMARY KEY AUTO_INCREMENT,
+    ->     organizer_name VARCHAR(100) NOT NULL,
+    ->     contact_person VARCHAR(100) NOT NULL,
+    ->     phone VARCHAR(15),
+    ->     email VARCHAR(100),
+    ->     organization_type VARCHAR(50)
+    -> );
+Query OK, 0 rows affected (0.03 sec)
+
+2. VENUES
+
+mysql> CREATE TABLE venues (
+    ->     venue_id INT PRIMARY KEY AUTO_INCREMENT,
+    ->     venue_name VARCHAR(100) NOT NULL,
+    ->     address VARCHAR(200),
+    ->     city VARCHAR(50),
+    ->     capacity INT,
+    ->     waste_facility_available BOOLEAN DEFAULT FALSE
+    -> );
+Query OK, 0 rows affected (0.03 sec)
+
+3. EVENTS
+
+mysql> CREATE TABLE events (
+    ->     event_id INT PRIMARY KEY AUTO_INCREMENT,
+    ->     event_name VARCHAR(150) NOT NULL,
+    ->     organizer_id INT NOT NULL,
+    ->     venue_id INT NOT NULL,
+    ->     event_type VARCHAR(50),
+    ->     event_date DATE,
+    ->     expected_attendees INT,
+    ->     actual_attendees INT,
+    ->     event_status VARCHAR(30),
+    ->
+    ->     FOREIGN KEY (organizer_id)
+    ->         REFERENCES event_organizers(organizer_id),
+    ->
+    ->     FOREIGN KEY (venue_id)
+    ->         REFERENCES venues(venue_id)
+    -> );
+Query OK, 0 rows affected (0.05 sec)
+
+4. RESOURCE CATEGORIES
+
+mysql> CREATE TABLE resource_categories (
+    ->     category_id INT PRIMARY KEY AUTO_INCREMENT,
+    ->     category_name VARCHAR(100) NOT NULL,
+    ->     description VARCHAR(255)
+    -> );
+Query OK, 0 rows affected (0.02 sec)
+
+5. RESOURCES
+
+mysql> CREATE TABLE resources (
+    ->     resource_id INT PRIMARY KEY AUTO_INCREMENT,
+    ->     category_id INT NOT NULL,
+    ->     resource_name VARCHAR(100) NOT NULL,
+    ->     quantity_available INT NOT NULL,
+    ->     reusable BOOLEAN DEFAULT FALSE,
+    ->     condition_status VARCHAR(30),
+    ->     storage_location VARCHAR(100),
+    ->
+    ->     FOREIGN KEY (category_id)
+    ->         REFERENCES resource_categories(category_id)
+    -> );
+Query OK, 0 rows affected (0.06 sec)
+
+6. RESOURCE ALLOCATIONS
+
+mysql> CREATE TABLE resource_allocations (
+    ->     allocation_id INT PRIMARY KEY AUTO_INCREMENT,
+    ->     event_id INT NOT NULL,
+    ->     resource_id INT NOT NULL,
+    ->     quantity_allocated INT NOT NULL,
+    ->     allocation_date DATE,
+    ->     quantity_used INT DEFAULT 0,
+    ->     quantity_damaged INT DEFAULT 0,
+    ->     quantity_returned INT DEFAULT 0,
+    ->
+    ->     FOREIGN KEY (event_id)
+    ->         REFERENCES events(event_id),
+    ->
+    ->     FOREIGN KEY (resource_id)
+    ->         REFERENCES resources(resource_id)
+    -> );
+Query OK, 0 rows affected (0.05 sec)
+
+7. STAFF / VOLUNTEERS
+
+mysql> CREATE TABLE staff_volunteers (
+    ->     person_id INT PRIMARY KEY AUTO_INCREMENT,
+    ->     event_id INT NOT NULL,
+    ->     person_name VARCHAR(100) NOT NULL,
+    ->     role VARCHAR(50),
+    ->     phone VARCHAR(15),
+    ->     availability_status VARCHAR(30),
+    ->
+    ->     FOREIGN KEY (event_id)
+    ->         REFERENCES events(event_id)
+    -> );
+Query OK, 0 rows affected (0.04 sec)
+
+8. EVENT TASKS
+
+mysql> CREATE TABLE event_tasks (
+    ->     task_id INT PRIMARY KEY AUTO_INCREMENT,
+    ->     event_id INT NOT NULL,
+    ->     person_id INT NOT NULL,
+    ->     task_name VARCHAR(150) NOT NULL,
+    ->     task_description VARCHAR(255),
+    ->     assigned_date DATE,
+    ->     due_date DATE,
+    ->     task_status VARCHAR(30),
+    ->
+    ->     FOREIGN KEY (event_id)
+    ->         REFERENCES events(event_id),
+    ->
+    ->     FOREIGN KEY (person_id)
+    ->         REFERENCES staff_volunteers(person_id)
+    -> );
+Query OK, 0 rows affected (0.06 sec)
+
+9. WASTE CATEGORIES
+
+mysql> CREATE TABLE waste_categories (
+    ->     waste_category_id INT PRIMARY KEY AUTO_INCREMENT,
+    ->     category_name VARCHAR(100) NOT NULL,
+    ->     disposal_method VARCHAR(100),
+    ->     recyclable BOOLEAN DEFAULT FALSE,
+    ->     description VARCHAR(255)
+    -> );
+Query OK, 0 rows affected (0.02 sec)
+
+10. WASTE RECORDS
+
+mysql> CREATE TABLE waste_records (
+    ->     waste_id INT PRIMARY KEY AUTO_INCREMENT,
+    ->     event_id INT NOT NULL,
+    ->     waste_category_id INT NOT NULL,
+    ->     recorded_date DATE,
+    ->     quantity_kg DECIMAL(10,2) NOT NULL,
+    ->     source_area VARCHAR(100),
+    ->     collection_status VARCHAR(30),
+    ->
+    ->     FOREIGN KEY (event_id)
+    ->         REFERENCES events(event_id),
+    ->
+    ->     FOREIGN KEY (waste_category_id)
+    ->         REFERENCES waste_categories(waste_category_id)
+    -> );
+Query OK, 0 rows affected (0.05 sec)
+
+11. WASTE SEGREGATION
+
+mysql> CREATE TABLE waste_segregation (
+    ->     segregation_id INT PRIMARY KEY AUTO_INCREMENT,
+    ->     waste_id INT NOT NULL,
+    ->     recyclable_kg DECIMAL(10,2) DEFAULT 0,
+    ->     compostable_kg DECIMAL(10,2) DEFAULT 0,
+    ->     reusable_kg DECIMAL(10,2) DEFAULT 0,
+    ->     non_recyclable_kg DECIMAL(10,2) DEFAULT 0,
+    ->     segregation_date DATE,
+    ->
+    ->     FOREIGN KEY (waste_id)
+    ->         REFERENCES waste_records(waste_id)
+    -> );
+Query OK, 0 rows affected (0.04 sec)
+
+12. WASTE COLLECTION
+
+mysql> CREATE TABLE waste_collection (
+    ->     collection_id INT PRIMARY KEY AUTO_INCREMENT,
+    ->     waste_id INT NOT NULL,
+    ->     collected_by VARCHAR(100),
+    ->     collection_date DATE,
+    ->     quantity_collected_kg DECIMAL(10,2),
+    ->     destination VARCHAR(150),
+    ->     collection_status VARCHAR(30)
+    ->         ,
+    ->     FOREIGN KEY (waste_id)
+    ->         REFERENCES waste_records(waste_id)
+    -> );
+Query OK, 0 rows affected (0.04 sec)
+
+13. RECOVERY PARTNERS
+
+mysql> CREATE TABLE recovery_partners (
+    ->     partner_id INT PRIMARY KEY AUTO_INCREMENT,
+    ->     partner_name VARCHAR(150) NOT NULL,
+    ->     partner_type VARCHAR(50),
+    ->     contact_person VARCHAR(100),
+    ->     phone VARCHAR(15),
+    ->     email VARCHAR(100),
+    ->     city VARCHAR(50),
+    ->     status VARCHAR(30)
+    -> );
+Query OK, 0 rows affected (0.02 sec)
+
+14. RECOVERY RECORDS
+
+mysql> CREATE TABLE recovery_records (
+    ->     recovery_id INT PRIMARY KEY AUTO_INCREMENT,
+    ->     waste_id INT NOT NULL,
+    ->     partner_id INT NOT NULL,
+    ->     recovery_type VARCHAR(50),
+    ->     quantity_kg DECIMAL(10,2),
+    ->     recovery_date DATE,
+    ->     material_recovered VARCHAR(100),
+    ->     status VARCHAR(30),
+    ->
+    ->     FOREIGN KEY (waste_id)
+    ->         REFERENCES waste_records(waste_id),
+    ->
+    ->     FOREIGN KEY (partner_id)
+    ->         REFERENCES recovery_partners(partner_id)
+    -> );
+Query OK, 0 rows affected (0.06 sec)
+
+===================================================
+                  INSERT VALUES
+===================================================
+
+mysql> INSERT INTO event_organizers
+    -> (organizer_name, contact_person, phone, email, organization_type)
+    -> VALUES
+    -> ('Vignan Institute of Technology', 'Dr. Anil Kumar', '9876543210', 'anilkumar@vit.edu', 'College'),
+    -> ('Green Events India', 'Priya Sharma', '9848012345', 'priya@greenevents.in', 'Event Management'),
+    -> ('TechSphere Solutions', 'Rahul Mehta', '9988776655', 'rahul@techsphere.com', 'Corporate'),
+    -> ('Coastal Cultural Society', 'Lakshmi Rao', '9123456789', 'lakshmi@coastalculture.org', 'Cultural Organization'),
+    -> ('BlueSky Wedding Planners', 'Neha Kapoor', '9001122334', 'neha@blueskyweddings.in', 'Wedding Planner'),
+    -> ('Vizag Exhibition Committee', 'Suresh Varma', '9556677889', 'suresh@vizagexpo.in', 'Exhibition Organizer');
+Query OK, 6 rows affected (0.04 sec)
+Records: 6  Duplicates: 0  Warnings: 0
+
+mysql> INSERT INTO venues
+    -> (venue_name, address, city, capacity, waste_facility_available)
+    -> VALUES
+    -> ('Vignan College Auditorium', 'Duvvada, Visakhapatnam', 'Visakhapatnam', 1200, TRUE),
+    -> ('Vizag Convention Centre', 'Madhurawada, Visakhapatnam', 'Visakhapatnam', 2500, TRUE),
+    -> ('Tech Park Conference Hall', 'Rushikonda, Visakhapatnam', 'Visakhapatnam', 800, TRUE),
+    -> ('Beach Road Open Grounds', 'Beach Road, Visakhapatnam', 'Visakhapatnam', 5000, TRUE),
+    -> ('Haritha Grand Hall', 'MVP Colony, Visakhapatnam', 'Visakhapatnam', 1500, FALSE),
+    -> ('City Exhibition Grounds', 'Gajuwaka, Visakhapatnam', 'Visakhapatnam', 3500, TRUE);
+Query OK, 6 rows affected (0.01 sec)
+Records: 6  Duplicates: 0  Warnings: 0
+
+mysql> INSERT INTO events
+    -> (event_name, organizer_id, venue_id, event_type, event_date,
+    ->  expected_attendees, actual_attendees, event_status)
+    -> VALUES
+    -> ('TechFest 2026', 1, 1, 'College Fest', '2026-08-20', 1000, 950, 'Completed'),
+    ->
+    -> ('Green Business Conference', 2, 2, 'Conference', '2026-08-25', 1800, 1650, 'Completed'),
+    ->
+    -> ('Innovation Summit 2026', 3, 3, 'Corporate Event', '2026-09-05', 650, 620, 'Completed'),
+    ->
+    -> ('Vizag Cultural Festival', 4, 4, 'Cultural Event', '2026-09-12', 4000, 3800, 'Completed'),
+    ->
+    -> ('Eco Wedding Celebration', 5, 5, 'Wedding', '2026-09-20', 1200, 1150, 'Planned'),
+    ->
+    -> ('Vizag Technology Expo', 6, 6, 'Exhibition', '2026-10-02', 3000, 0, 'Upcoming'),
+    ->
+    -> ('Student Entrepreneurship Meet', 1, 3, 'Conference', '2026-10-10', 700, 0, 'Upcoming'),
+    ->
+    -> ('Sustainable Campus Fest', 2, 1, 'College Fest', '2026-10-18', 1100, 0, 'Upcoming');
+Query OK, 8 rows affected (0.01 sec)
+Records: 8  Duplicates: 0  Warnings: 0
+
+mysql> INSERT INTO resource_categories
+    -> (category_name, description)
+    -> VALUES
+    -> ('Furniture', 'Chairs, tables and other event furniture'),
+    -> ('Decoration', 'Decorative materials and event displays'),
+    -> ('Food Service', 'Food containers, serving equipment and dispensers'),
+    -> ('Electrical', 'Lights, speakers and electrical equipment'),
+    -> ('Promotional Materials', 'Banners, posters and promotional displays'),
+    -> ('Cleaning Equipment', 'Bins, cleaning tools and sanitation equipment');
+Query OK, 6 rows affected (0.01 sec)
+Records: 6  Duplicates: 0  Warnings: 0
+
+mysql> INSERT INTO resources
+    -> (category_id, resource_name, quantity_available, reusable,
+    ->  condition_status, storage_location)
+    -> VALUES
+    -> (1, 'Plastic Chairs', 500, TRUE, 'Good', 'Warehouse A'),
+    ->
+    -> (1, 'Folding Tables', 100, TRUE, 'Good', 'Warehouse A'),
+    ->
+    -> (2, 'Decorative Banners', 80, TRUE, 'Good', 'Warehouse B'),
+    ->
+    -> (2, 'Stage Backdrops', 25, TRUE, 'Good', 'Warehouse B'),
+    ->
+    -> (3, 'Reusable Food Containers', 2000, TRUE, 'Good', 'Storage Room C'),
+    ->
+    -> (3, 'Water Dispensers', 30, TRUE, 'Good', 'Storage Room C'),
+    ->
+    -> (4, 'LED Lights', 100, TRUE, 'Good', 'Electrical Store'),
+    ->
+    -> (4, 'Portable Speakers', 25, TRUE, 'Good', 'Electrical Store'),
+    ->
+    -> (5, 'Promotional Posters', 300, FALSE, 'New', 'Warehouse D'),
+    ->
+    -> (5, 'Directional Sign Boards', 60, TRUE, 'Good', 'Warehouse D'),
+    ->
+    -> (6, 'Waste Bins', 150, TRUE, 'Good', 'Cleaning Store'),
+    ->
+    -> (6, 'Cleaning Kits', 50, TRUE, 'Good', 'Cleaning Store');
+Query OK, 12 rows affected (0.01 sec)
+Records: 12  Duplicates: 0  Warnings: 0
+
+mysql> INSERT INTO resource_allocations
+    -> (event_id, resource_id, quantity_allocated, allocation_date,
+    ->  quantity_used, quantity_damaged, quantity_returned)
+    -> VALUES
+    -> (1, 1, 250, '2026-08-18', 240, 5, 245),
+    ->
+    -> (1, 2, 40, '2026-08-18', 38, 1, 39),
+    ->
+    -> (1, 3, 20, '2026-08-18', 18, 1, 19),
+    ->
+    -> (1, 11, 50, '2026-08-18', 50, 0, 50),
+    ->
+    -> (2, 1, 300, '2026-08-23', 290, 3, 297),
+    ->
+    -> (2, 2, 60, '2026-08-23', 55, 2, 58),
+    ->
+    -> (2, 5, 800, '2026-08-23', 760, 20, 780),
+    ->
+    -> (2, 11, 70, '2026-08-23', 70, 0, 70),
+    ->
+    -> (3, 1, 150, '2026-09-03', 145, 2, 148),
+    ->
+    -> (3, 7, 30, '2026-09-03', 30, 0, 30),
+    ->
+    -> (3, 8, 10, '2026-09-03', 10, 0, 10),
+    ->
+    -> (4, 1, 500, '2026-09-10', 480, 8, 492),
+    ->
+    -> (4, 3, 40, '2026-09-10', 35, 3, 37),
+    ->
+    -> (4, 11, 100, '2026-09-10', 100, 0, 100),
+    ->
+    -> (5, 1, 250, '2026-09-18', 0, 0, 0),
+    ->
+    -> (5, 5, 1000, '2026-09-18', 0, 0, 0);
+Query OK, 16 rows affected (0.01 sec)
+Records: 16  Duplicates: 0  Warnings: 0
+
+mysql> INSERT INTO staff_volunteers
+    -> (event_id, person_name, role, phone, availability_status)
+    -> VALUES
+    -> (1, 'Arjun Reddy', 'Waste Coordinator', '9876501234', 'Available'),
+    -> (1, 'Sneha Rao', 'Volunteer', '9876501235', 'Available'),
+    -> (1, 'Kiran Kumar', 'Cleaning Staff', '9876501236', 'Available'),
+    ->
+    -> (2, 'Meera Sharma', 'Event Supervisor', '9876501240', 'Available'),
+    -> (2, 'Rohit Singh', 'Waste Coordinator', '9876501241', 'Available'),
+    -> (2, 'Divya Patel', 'Volunteer', '9876501242', 'Available'),
+    ->
+    -> (3, 'Aakash Verma', 'Resource Manager', '9876501250', 'Available'),
+    -> (3, 'Pooja Nair', 'Volunteer', '9876501251', 'Available'),
+    ->
+    -> (4, 'Ravi Teja', 'Waste Coordinator', '9876501260', 'Available'),
+    -> (4, 'Anusha Devi', 'Cleaning Staff', '9876501261', 'Available'),
+    ->
+    -> (5, 'Nikhil Rao', 'Event Supervisor', '9876501270', 'Available'),
+    -> (5, 'Kavya Reddy', 'Volunteer', '9876501271', 'Available');
+Query OK, 12 rows affected (0.01 sec)
+Records: 12  Duplicates: 0  Warnings: 0
+
+mysql> INSERT INTO event_tasks
+    -> (event_id, person_id, task_name, task_description,
+    ->  assigned_date, due_date, task_status)
+    -> VALUES
+    -> (1, 1, 'Waste Bin Setup',
+    ->  'Place waste bins at designated locations',
+    ->  '2026-08-18', '2026-08-19', 'Completed'),
+    ->
+    -> (1, 2, 'Waste Segregation',
+    ->  'Separate recyclable and non-recyclable waste',
+    ->  '2026-08-20', '2026-08-20', 'Completed'),
+    ->
+    -> (1, 3, 'Venue Cleaning',
+    ->  'Clean venue after event completion',
+    ->  '2026-08-20', '2026-08-20', 'Completed'),
+    ->
+    -> (2, 4, 'Event Coordination',
+    ->  'Coordinate event operations',
+    ->  '2026-08-23', '2026-08-25', 'Completed'),
+    ->
+    -> (2, 5, 'Waste Monitoring',
+    ->  'Monitor waste generation during conference',
+    ->  '2026-08-25', '2026-08-25', 'Completed'),
+    ->
+    -> (2, 6, 'Recyclable Collection',
+    ->  'Collect recyclable materials',
+    ->  '2026-08-25', '2026-08-25', 'Completed'),
+    ->
+    -> (3, 7, 'Resource Setup',
+    ->  'Prepare electrical and furniture resources',
+    ->  '2026-09-03', '2026-09-04', 'Completed'),
+    ->
+    -> (3, 8, 'Waste Monitoring',
+    ->  'Track waste generated during summit',
+    ->  '2026-09-05', '2026-09-05', 'Completed'),
+    ->
+    -> (4, 9, 'Waste Collection',
+    ->  'Collect waste from festival areas',
+    ->  '2026-09-12', '2026-09-12', 'Completed'),
+    ->
+    -> (4, 10, 'Venue Cleaning',
+    ->  'Clean the event grounds',
+    ->  '2026-09-12', '2026-09-12', 'Completed'),
+    ->
+    -> (5, 11, 'Resource Inspection',
+    ->  'Inspect reusable resources before event',
+    ->  '2026-09-18', '2026-09-19', 'Pending'),
+    ->
+    -> (5, 12, 'Waste Management Setup',
+    ->  'Prepare waste collection points',
+    ->  '2026-09-18', '2026-09-19', 'Pending');
+Query OK, 12 rows affected (0.01 sec)
+Records: 12  Duplicates: 0  Warnings: 0
+
+mysql> INSERT INTO waste_categories
+    -> (category_name, disposal_method, recyclable, description)
+    -> VALUES
+    -> ('Food Waste', 'Composting', FALSE,
+    ->  'Organic waste generated from food and catering'),
+    ->
+    -> ('Plastic', 'Recycling', TRUE,
+    ->  'Plastic bottles, containers and packaging'),
+    ->
+    -> ('Paper', 'Recycling', TRUE,
+    ->  'Paper, brochures and printed materials'),
+    ->
+    -> ('Glass', 'Recycling', TRUE,
+    ->  'Glass bottles and containers'),
+    ->
+    -> ('Metal', 'Recycling', TRUE,
+    ->  'Metal cans and other metal waste'),
+    ->
+    -> ('E-Waste', 'Authorized E-Waste Recycling', TRUE,
+    ->  'Electronic and electrical waste'),
+    ->
+    -> ('Mixed Waste', 'Waste Disposal Facility', FALSE,
+    ->  'Waste that cannot be separated easily'),
+    ->
+    -> ('Decorative Waste', 'Reuse or Recycling', TRUE,
+    ->  'Used decorations, banners and display materials');
+Query OK, 8 rows affected (0.01 sec)
+Records: 8  Duplicates: 0  Warnings: 0
+
+mysql> INSERT INTO waste_records
+    -> (event_id, waste_category_id, recorded_date,
+    ->  quantity_kg, source_area, collection_status)
+    -> VALUES
+    -> (1, 1, '2026-08-20', 42.50, 'Food Court', 'Collected'),
+    ->
+    -> (1, 2, '2026-08-20', 28.75, 'Food Court', 'Collected'),
+    ->
+    -> (1, 3, '2026-08-20', 18.40, 'Registration Area', 'Collected'),
+    ->
+    -> (1, 7, '2026-08-20', 12.60, 'Main Stage', 'Collected'),
+    ->
+    -> (2, 1, '2026-08-25', 65.80, 'Dining Area', 'Collected'),
+    ->
+    -> (2, 2, '2026-08-25', 35.40, 'Conference Hall', 'Collected'),
+    ->
+    -> (2, 3, '2026-08-25', 24.70, 'Conference Hall', 'Collected'),
+    ->
+    -> (2, 5, '2026-08-25', 9.30, 'Refreshment Area', 'Collected'),
+    ->
+    -> (3, 2, '2026-09-05', 15.60, 'Networking Area', 'Collected'),
+    ->
+    -> (3, 3, '2026-09-05', 10.40, 'Conference Hall', 'Collected'),
+    ->
+    -> (3, 6, '2026-09-05', 4.50, 'Technology Zone', 'Collected'),
+    ->
+    -> (4, 1, '2026-09-12', 120.50, 'Food Area', 'Collected'),
+    ->
+    -> (4, 2, '2026-09-12', 85.75, 'Festival Grounds', 'Collected'),
+    ->
+    -> (4, 3, '2026-09-12', 45.30, 'Entry Area', 'Collected'),
+    ->
+    -> (4, 4, '2026-09-12', 22.40, 'Festival Grounds', 'Collected'),
+    ->
+    -> (4, 7, '2026-09-12', 35.60, 'General Area', 'Collected');
+Query OK, 16 rows affected (0.01 sec)
+Records: 16  Duplicates: 0  Warnings: 0
+
+mysql> INSERT INTO waste_segregation
+    -> (waste_id, recyclable_kg, compostable_kg, reusable_kg,
+    ->  non_recyclable_kg, segregation_date)
+    -> VALUES
+    -> (1, 0.00, 40.00, 0.00, 2.50, '2026-08-20'),
+    ->
+    -> (2, 26.50, 0.00, 0.00, 2.25, '2026-08-20'),
+    ->
+    -> (3, 17.00, 0.00, 0.50, 0.90, '2026-08-20'),
+    ->
+    -> (4, 0.00, 0.00, 8.00, 4.60, '2026-08-20'),
+    ->
+    -> (5, 0.00, 60.00, 0.00, 5.80, '2026-08-25'),
+    ->
+    -> (6, 33.00, 0.00, 0.00, 2.40, '2026-08-25'),
+    ->
+    -> (7, 23.00, 0.00, 0.50, 1.20, '2026-08-25'),
+    ->
+    -> (8, 8.50, 0.00, 0.00, 0.80, '2026-08-25'),
+    ->
+    -> (9, 14.50, 0.00, 0.00, 1.10, '2026-09-05'),
+    ->
+    -> (10, 9.50, 0.00, 0.30, 0.60, '2026-09-05'),
+    ->
+    -> (11, 4.20, 0.00, 0.00, 0.30, '2026-09-05'),
+    ->
+    -> (12, 0.00, 115.00, 0.00, 5.50, '2026-09-12'),
+    ->
+    -> (13, 80.00, 0.00, 2.00, 3.75, '2026-09-12'),
+    ->
+    -> (14, 42.00, 0.00, 1.50, 1.80, '2026-09-12'),
+    ->
+    -> (15, 21.00, 0.00, 0.00, 1.40, '2026-09-12'),
+    ->
+    -> (16, 0.00, 0.00, 20.00, 15.60, '2026-09-12');
+Query OK, 16 rows affected (0.01 sec)
+Records: 16  Duplicates: 0  Warnings: 0
+
+mysql> INSERT INTO waste_collection
+    -> (waste_id, collected_by, collection_date,
+    ->  quantity_collected_kg, destination, collection_status)
+    -> VALUES
+    -> (1, 'EcoClean Services', '2026-08-20', 42.50, 'Green Compost Center', 'Completed'),
+    ->
+    -> (2, 'GreenCycle Recycling', '2026-08-20', 28.75, 'GreenCycle Recycling Plant', 'Completed'),
+    ->
+    -> (3, 'GreenCycle Recycling', '2026-08-20', 18.40, 'Paper Recovery Center', 'Completed'),
+    ->
+    -> (4, 'EcoClean Services', '2026-08-20', 12.60, 'Municipal Waste Facility', 'Completed'),
+    ->
+    -> (5, 'EcoClean Services', '2026-08-25', 65.80, 'Green Compost Center', 'Completed'),
+    ->
+    -> (6, 'GreenCycle Recycling', '2026-08-25', 35.40, 'GreenCycle Recycling Plant', 'Completed'),
+    ->
+    -> (7, 'GreenCycle Recycling', '2026-08-25', 24.70, 'Paper Recovery Center', 'Completed'),
+    ->
+    -> (8, 'MetalRecover Pvt Ltd', '2026-08-25', 9.30, 'Metal Recovery Facility', 'Completed'),
+    ->
+    -> (9, 'GreenCycle Recycling', '2026-09-05', 15.60, 'GreenCycle Recycling Plant', 'Completed'),
+    ->
+    -> (10, 'GreenCycle Recycling', '2026-09-05', 10.40, 'Paper Recovery Center', 'Completed'),
+    ->
+    -> (11, 'TechRecycle Solutions', '2026-09-05', 4.50, 'Authorized E-Waste Facility', 'Completed'),
+    ->
+    -> (12, 'EcoClean Services', '2026-09-12', 120.50, 'Green Compost Center', 'Completed'),
+    ->
+    -> (13, 'GreenCycle Recycling', '2026-09-12', 85.75, 'GreenCycle Recycling Plant', 'Completed'),
+    ->
+    -> (14, 'GreenCycle Recycling', '2026-09-12', 45.30, 'Paper Recovery Center', 'Completed'),
+    ->
+    -> (15, 'GlassRecover Industries', '2026-09-12', 22.40, 'Glass Recovery Facility', 'Completed'),
+    ->
+    -> (16, 'EcoClean Services', '2026-09-12', 35.60, 'Municipal Waste Facility', 'Completed');
+Query OK, 16 rows affected (0.01 sec)
+Records: 16  Duplicates: 0  Warnings: 0
+
+mysql> INSERT INTO recovery_partners
+    -> (partner_name, partner_type, contact_person, phone,
+    ->  email, city, status)
+    -> VALUES
+    -> ('GreenCycle Recycling Pvt Ltd', 'Recycling', 'Mohan Das',
+    ->  '9877001122', 'contact@greencycle.in', 'Visakhapatnam', 'Active'),
+    ->
+    -> ('EcoCompost Solutions', 'Composting', 'Sanjay Rao',
+    ->  '9877001133', 'info@ecocompost.in', 'Visakhapatnam', 'Active'),
+    ->
+    -> ('TechRecycle Solutions', 'E-Waste Recycling', 'Varun Kumar',
+    ->  '9877001144', 'support@techrecycle.in', 'Visakhapatnam', 'Active'),
+    ->
+    -> ('PaperRecover Industries', 'Paper Recycling', 'Deepa Menon',
+    ->  '9877001155', 'contact@paperrecover.in', 'Visakhapatnam', 'Active'),
+    ->
+    -> ('MetalRecover Pvt Ltd', 'Metal Recycling', 'Ramesh Babu',
+    ->  '9877001166', 'info@metalrecover.in', 'Visakhapatnam', 'Active'),
+    ->
+    -> ('GlassRecover Industries', 'Glass Recycling', 'Harish Rao',
+    ->  '9877001177', 'contact@glassrecover.in', 'Visakhapatnam', 'Active'),
+    ->
+    -> ('ReuseWorks Foundation', 'Reuse', 'Anita Sharma',
+    ->  '9877001188', 'hello@reuseworks.org', 'Visakhapatnam', 'Active');
+Query OK, 7 rows affected (0.01 sec)
+Records: 7  Duplicates: 0  Warnings: 0
+
+mysql> INSERT INTO recovery_records
+    -> (waste_id, partner_id, recovery_type, quantity_kg,
+    ->  recovery_date, material_recovered, status)
+    -> VALUES
+    -> (1, 2, 'Composting', 40.00,
+    ->  '2026-08-21', 'Compost', 'Completed'),
+    ->
+    -> (2, 1, 'Recycling', 26.50,
+    ->  '2026-08-21', 'Recycled Plastic', 'Completed'),
+    ->
+    -> (3, 4, 'Recycling', 17.00,
+    ->  '2026-08-21', 'Recovered Paper', 'Completed'),
+    ->
+    -> (4, 7, 'Reuse', 8.00,
+    ->  '2026-08-21', 'Reusable Decoration Material', 'Completed'),
+    ->
+    -> (5, 2, 'Composting', 60.00,
+    ->  '2026-08-26', 'Compost', 'Completed'),
+    ->
+    -> (6, 1, 'Recycling', 33.00,
+    ->  '2026-08-26', 'Recycled Plastic', 'Completed'),
+    ->
+    -> (7, 4, 'Recycling', 23.00,
+    ->  '2026-08-26', 'Recovered Paper', 'Completed'),
+    ->
+    -> (8, 5, 'Recycling', 8.50,
+    ->  '2026-08-26', 'Recovered Metal', 'Completed'),
+    ->
+    -> (9, 1, 'Recycling', 14.50,
+    ->  '2026-09-06', 'Recycled Plastic', 'Completed'),
+    ->
+    -> (10, 4, 'Recycling', 9.50,
+    ->  '2026-09-06', 'Recovered Paper', 'Completed'),
+    ->
+    -> (11, 3, 'E-Waste Recycling', 4.20,
+    ->  '2026-09-06', 'Recovered Electronic Components', 'Completed'),
+    ->
+    -> (12, 2, 'Composting', 115.00,
+    ->  '2026-09-13', 'Compost', 'Completed'),
+    ->
+    -> (13, 1, 'Recycling', 80.00,
+    ->  '2026-09-13', 'Recycled Plastic', 'Completed'),
+    ->
+    -> (14, 4, 'Recycling', 42.00,
+    ->  '2026-09-13', 'Recovered Paper', 'Completed'),
+    ->
+    -> (15, 6, 'Recycling', 21.00,
+    ->  '2026-09-13', 'Recovered Glass', 'Completed'),
+    ->
+    -> (16, 7, 'Reuse', 20.00,
+    ->  '2026-09-13', 'Reusable Materials', 'Completed');
+Query OK, 16 rows affected (0.01 sec)
+Records: 16  Duplicates: 0  Warnings: 0
+
+=================================================
+            VERIFY DATA
+==================================================
+
+mysql> SELECT * FROM event_organizers;
++--------------+--------------------------------+----------------+------------+----------------------------+-----------------------+
+| organizer_id | organizer_name                 | contact_person | phone      | email                      | organization_type     |
++--------------+--------------------------------+----------------+------------+----------------------------+-----------------------+
+|            1 | Vignan Institute of Technology | Dr. Anil Kumar | 9876543210 | anilkumar@vit.edu          | College               |
+|            2 | Green Events India             | Priya Sharma   | 9848012345 | priya@greenevents.in       | Event Management      |
+|            3 | TechSphere Solutions           | Rahul Mehta    | 9988776655 | rahul@techsphere.com       | Corporate             |
+|            4 | Coastal Cultural Society       | Lakshmi Rao    | 9123456789 | lakshmi@coastalculture.org | Cultural Organization |
+|            5 | BlueSky Wedding Planners       | Neha Kapoor    | 9001122334 | neha@blueskyweddings.in    | Wedding Planner       |
+|            6 | Vizag Exhibition Committee     | Suresh Varma   | 9556677889 | suresh@vizagexpo.in        | Exhibition Organizer  |
++--------------+--------------------------------+----------------+------------+----------------------------+-----------------------+
+6 rows in set (0.01 sec)
+
+mysql> SELECT * FROM venues;
++----------+---------------------------+----------------------------+---------------+----------+--------------------------+
+| venue_id | venue_name                | address                    | city          | capacity | waste_facility_available |
++----------+---------------------------+----------------------------+---------------+----------+--------------------------+
+|        1 | Vignan College Auditorium | Duvvada, Visakhapatnam     | Visakhapatnam |     1200 |                        1 |
+|        2 | Vizag Convention Centre   | Madhurawada, Visakhapatnam | Visakhapatnam |     2500 |                        1 |
+|        3 | Tech Park Conference Hall | Rushikonda, Visakhapatnam  | Visakhapatnam |      800 |                        1 |
+|        4 | Beach Road Open Grounds   | Beach Road, Visakhapatnam  | Visakhapatnam |     5000 |                        1 |
+|        5 | Haritha Grand Hall        | MVP Colony, Visakhapatnam  | Visakhapatnam |     1500 |                        0 |
+|        6 | City Exhibition Grounds   | Gajuwaka, Visakhapatnam    | Visakhapatnam |     3500 |                        1 |
++----------+---------------------------+----------------------------+---------------+----------+--------------------------+
+6 rows in set (0.00 sec)
+
+mysql> SELECT * FROM events;
++----------+-------------------------------+--------------+----------+-----------------+------------+--------------------+------------------+--------------+
+| event_id | event_name                    | organizer_id | venue_id | event_type      | event_date | expected_attendees | actual_attendees | event_status |
++----------+-------------------------------+--------------+----------+-----------------+------------+--------------------+------------------+--------------+
+|        1 | TechFest 2026                 |            1 |        1 | College Fest    | 2026-08-20 |               1000 |              950 | Completed    |
+|        2 | Green Business Conference     |            2 |        2 | Conference      | 2026-08-25 |               1800 |             1650 | Completed    |
+|        3 | Innovation Summit 2026        |            3 |        3 | Corporate Event | 2026-09-05 |                650 |              620 | Completed    |
+|        4 | Vizag Cultural Festival       |            4 |        4 | Cultural Event  | 2026-09-12 |               4000 |             3800 | Completed    |
+|        5 | Eco Wedding Celebration       |            5 |        5 | Wedding         | 2026-09-20 |               1200 |             1150 | Planned      |
+|        6 | Vizag Technology Expo         |            6 |        6 | Exhibition      | 2026-10-02 |               3000 |                0 | Upcoming     |
+|        7 | Student Entrepreneurship Meet |            1 |        3 | Conference      | 2026-10-10 |                700 |                0 | Upcoming     |
+|        8 | Sustainable Campus Fest       |            2 |        1 | College Fest    | 2026-10-18 |               1100 |                0 | Upcoming     |
++----------+-------------------------------+--------------+----------+-----------------+------------+--------------------+------------------+--------------+
+8 rows in set (0.00 sec)
+
+mysql> SELECT * FROM resource_categories;
++-------------+-----------------------+---------------------------------------------------+
+| category_id | category_name         | description                                       |
++-------------+-----------------------+---------------------------------------------------+
+|           1 | Furniture             | Chairs, tables and other event furniture          |
+|           2 | Decoration            | Decorative materials and event displays           |
+|           3 | Food Service          | Food containers, serving equipment and dispensers |
+|           4 | Electrical            | Lights, speakers and electrical equipment         |
+|           5 | Promotional Materials | Banners, posters and promotional displays         |
+|           6 | Cleaning Equipment    | Bins, cleaning tools and sanitation equipment     |
++-------------+-----------------------+---------------------------------------------------+
+6 rows in set (0.00 sec)
+
+mysql> SELECT * FROM resources;
++-------------+-------------+--------------------------+--------------------+----------+------------------+------------------+
+| resource_id | category_id | resource_name            | quantity_available | reusable | condition_status | storage_location |
++-------------+-------------+--------------------------+--------------------+----------+------------------+------------------+
+|           1 |           1 | Plastic Chairs           |                500 |        1 | Good             | Warehouse A      |
+|           2 |           1 | Folding Tables           |                100 |        1 | Good             | Warehouse A      |
+|           3 |           2 | Decorative Banners       |                 80 |        1 | Good             | Warehouse B      |
+|           4 |           2 | Stage Backdrops          |                 25 |        1 | Good             | Warehouse B      |
+|           5 |           3 | Reusable Food Containers |               2000 |        1 | Good             | Storage Room C   |
+|           6 |           3 | Water Dispensers         |                 30 |        1 | Good             | Storage Room C   |
+|           7 |           4 | LED Lights               |                100 |        1 | Good             | Electrical Store |
+|           8 |           4 | Portable Speakers        |                 25 |        1 | Good             | Electrical Store |
+|           9 |           5 | Promotional Posters      |                300 |        0 | New              | Warehouse D      |
+|          10 |           5 | Directional Sign Boards  |                 60 |        1 | Good             | Warehouse D      |
+|          11 |           6 | Waste Bins               |                150 |        1 | Good             | Cleaning Store   |
+|          12 |           6 | Cleaning Kits            |                 50 |        1 | Good             | Cleaning Store   |
++-------------+-------------+--------------------------+--------------------+----------+------------------+------------------+
+12 rows in set (0.00 sec)
+
+mysql> SELECT * FROM resource_allocations;
++---------------+----------+-------------+--------------------+-----------------+---------------+------------------+-------------------+
+| allocation_id | event_id | resource_id | quantity_allocated | allocation_date | quantity_used | quantity_damaged | quantity_returned |
++---------------+----------+-------------+--------------------+-----------------+---------------+------------------+-------------------+
+|             1 |        1 |           1 |                250 | 2026-08-18      |           240 |                5 |               245 |
+|             2 |        1 |           2 |                 40 | 2026-08-18      |            38 |                1 |                39 |
+|             3 |        1 |           3 |                 20 | 2026-08-18      |            18 |                1 |                19 |
+|             4 |        1 |          11 |                 50 | 2026-08-18      |            50 |                0 |                50 |
+|             5 |        2 |           1 |                300 | 2026-08-23      |           290 |                3 |               297 |
+|             6 |        2 |           2 |                 60 | 2026-08-23      |            55 |                2 |                58 |
+|             7 |        2 |           5 |                800 | 2026-08-23      |           760 |               20 |               780 |
+|             8 |        2 |          11 |                 70 | 2026-08-23      |            70 |                0 |                70 |
+|             9 |        3 |           1 |                150 | 2026-09-03      |           145 |                2 |               148 |
+|            10 |        3 |           7 |                 30 | 2026-09-03      |            30 |                0 |                30 |
+|            11 |        3 |           8 |                 10 | 2026-09-03      |            10 |                0 |                10 |
+|            12 |        4 |           1 |                500 | 2026-09-10      |           480 |                8 |               492 |
+|            13 |        4 |           3 |                 40 | 2026-09-10      |            35 |                3 |                37 |
+|            14 |        4 |          11 |                100 | 2026-09-10      |           100 |                0 |               100 |
+|            15 |        5 |           1 |                250 | 2026-09-18      |             0 |                0 |                 0 |
+|            16 |        5 |           5 |               1000 | 2026-09-18      |             0 |                0 |                 0 |
++---------------+----------+-------------+--------------------+-----------------+---------------+------------------+-------------------+
+16 rows in set (0.00 sec)
+
+mysql> SELECT * FROM staff_volunteers;
++-----------+----------+--------------+-------------------+------------+---------------------+
+| person_id | event_id | person_name  | role              | phone      | availability_status |
++-----------+----------+--------------+-------------------+------------+---------------------+
+|         1 |        1 | Arjun Reddy  | Waste Coordinator | 9876501234 | Available           |
+|         2 |        1 | Sneha Rao    | Volunteer         | 9876501235 | Available           |
+|         3 |        1 | Kiran Kumar  | Cleaning Staff    | 9876501236 | Available           |
+|         4 |        2 | Meera Sharma | Event Supervisor  | 9876501240 | Available           |
+|         5 |        2 | Rohit Singh  | Waste Coordinator | 9876501241 | Available           |
+|         6 |        2 | Divya Patel  | Volunteer         | 9876501242 | Available           |
+|         7 |        3 | Aakash Verma | Resource Manager  | 9876501250 | Available           |
+|         8 |        3 | Pooja Nair   | Volunteer         | 9876501251 | Available           |
+|         9 |        4 | Ravi Teja    | Waste Coordinator | 9876501260 | Available           |
+|        10 |        4 | Anusha Devi  | Cleaning Staff    | 9876501261 | Available           |
+|        11 |        5 | Nikhil Rao   | Event Supervisor  | 9876501270 | Available           |
+|        12 |        5 | Kavya Reddy  | Volunteer         | 9876501271 | Available           |
++-----------+----------+--------------+-------------------+------------+---------------------+
+12 rows in set (0.00 sec)
+
+mysql> SELECT * FROM event_tasks;
++---------+----------+-----------+------------------------+----------------------------------------------+---------------+------------+-------------+
+| task_id | event_id | person_id | task_name              | task_description                             | assigned_date | due_date   | task_status |
++---------+----------+-----------+------------------------+----------------------------------------------+---------------+------------+-------------+
+|       1 |        1 |         1 | Waste Bin Setup        | Place waste bins at designated locations     | 2026-08-18    | 2026-08-19 | Completed   |
+|       2 |        1 |         2 | Waste Segregation      | Separate recyclable and non-recyclable waste | 2026-08-20    | 2026-08-20 | Completed   |
+|       3 |        1 |         3 | Venue Cleaning         | Clean venue after event completion           | 2026-08-20    | 2026-08-20 | Completed   |
+|       4 |        2 |         4 | Event Coordination     | Coordinate event operations                  | 2026-08-23    | 2026-08-25 | Completed   |
+|       5 |        2 |         5 | Waste Monitoring       | Monitor waste generation during conference   | 2026-08-25    | 2026-08-25 | Completed   |
+|       6 |        2 |         6 | Recyclable Collection  | Collect recyclable materials                 | 2026-08-25    | 2026-08-25 | Completed   |
+|       7 |        3 |         7 | Resource Setup         | Prepare electrical and furniture resources   | 2026-09-03    | 2026-09-04 | Completed   |
+|       8 |        3 |         8 | Waste Monitoring       | Track waste generated during summit          | 2026-09-05    | 2026-09-05 | Completed   |
+|       9 |        4 |         9 | Waste Collection       | Collect waste from festival areas            | 2026-09-12    | 2026-09-12 | Completed   |
+|      10 |        4 |        10 | Venue Cleaning         | Clean the event grounds                      | 2026-09-12    | 2026-09-12 | Completed   |
+|      11 |        5 |        11 | Resource Inspection    | Inspect reusable resources before event      | 2026-09-18    | 2026-09-19 | Pending     |
+|      12 |        5 |        12 | Waste Management Setup | Prepare waste collection points              | 2026-09-18    | 2026-09-19 | Pending     |
++---------+----------+-----------+------------------------+----------------------------------------------+---------------+------------+-------------+
+12 rows in set (0.00 sec)
+
+mysql> SELECT * FROM waste_categories;
++-------------------+------------------+------------------------------+------------+-------------------------------------------------+
+| waste_category_id | category_name    | disposal_method              | recyclable | description                                     |
++-------------------+------------------+------------------------------+------------+-------------------------------------------------+
+|                 1 | Food Waste       | Composting                   |          0 | Organic waste generated from food and catering  |
+|                 2 | Plastic          | Recycling                    |          1 | Plastic bottles, containers and packaging       |
+|                 3 | Paper            | Recycling                    |          1 | Paper, brochures and printed materials          |
+|                 4 | Glass            | Recycling                    |          1 | Glass bottles and containers                    |
+|                 5 | Metal            | Recycling                    |          1 | Metal cans and other metal waste                |
+|                 6 | E-Waste          | Authorized E-Waste Recycling |          1 | Electronic and electrical waste                 |
+|                 7 | Mixed Waste      | Waste Disposal Facility      |          0 | Waste that cannot be separated easily           |
+|                 8 | Decorative Waste | Reuse or Recycling           |          1 | Used decorations, banners and display materials |
++-------------------+------------------+------------------------------+------------+-------------------------------------------------+
+8 rows in set (0.00 sec)
+
+mysql> SELECT * FROM waste_records;
++----------+----------+-------------------+---------------+-------------+-------------------+-------------------+
+| waste_id | event_id | waste_category_id | recorded_date | quantity_kg | source_area       | collection_status |
++----------+----------+-------------------+---------------+-------------+-------------------+-------------------+
+|        1 |        1 |                 1 | 2026-08-20    |       42.50 | Food Court        | Collected         |
+|        2 |        1 |                 2 | 2026-08-20    |       28.75 | Food Court        | Collected         |
+|        3 |        1 |                 3 | 2026-08-20    |       18.40 | Registration Area | Collected         |
+|        4 |        1 |                 7 | 2026-08-20    |       12.60 | Main Stage        | Collected         |
+|        5 |        2 |                 1 | 2026-08-25    |       65.80 | Dining Area       | Collected         |
+|        6 |        2 |                 2 | 2026-08-25    |       35.40 | Conference Hall   | Collected         |
+|        7 |        2 |                 3 | 2026-08-25    |       24.70 | Conference Hall   | Collected         |
+|        8 |        2 |                 5 | 2026-08-25    |        9.30 | Refreshment Area  | Collected         |
+|        9 |        3 |                 2 | 2026-09-05    |       15.60 | Networking Area   | Collected         |
+|       10 |        3 |                 3 | 2026-09-05    |       10.40 | Conference Hall   | Collected         |
+|       11 |        3 |                 6 | 2026-09-05    |        4.50 | Technology Zone   | Collected         |
+|       12 |        4 |                 1 | 2026-09-12    |      120.50 | Food Area         | Collected         |
+|       13 |        4 |                 2 | 2026-09-12    |       85.75 | Festival Grounds  | Collected         |
+|       14 |        4 |                 3 | 2026-09-12    |       45.30 | Entry Area        | Collected         |
+|       15 |        4 |                 4 | 2026-09-12    |       22.40 | Festival Grounds  | Collected         |
+|       16 |        4 |                 7 | 2026-09-12    |       35.60 | General Area      | Collected         |
++----------+----------+-------------------+---------------+-------------+-------------------+-------------------+
+16 rows in set (0.00 sec)
+
+mysql> SELECT * FROM waste_segregation;
++----------------+----------+---------------+----------------+-------------+-------------------+------------------+
+| segregation_id | waste_id | recyclable_kg | compostable_kg | reusable_kg | non_recyclable_kg | segregation_date |
++----------------+----------+---------------+----------------+-------------+-------------------+------------------+
+|              1 |        1 |          0.00 |          40.00 |        0.00 |              2.50 | 2026-08-20       |
+|              2 |        2 |         26.50 |           0.00 |        0.00 |              2.25 | 2026-08-20       |
+|              3 |        3 |         17.00 |           0.00 |        0.50 |              0.90 | 2026-08-20       |
+|              4 |        4 |          0.00 |           0.00 |        8.00 |              4.60 | 2026-08-20       |
+|              5 |        5 |          0.00 |          60.00 |        0.00 |              5.80 | 2026-08-25       |
+|              6 |        6 |         33.00 |           0.00 |        0.00 |              2.40 | 2026-08-25       |
+|              7 |        7 |         23.00 |           0.00 |        0.50 |              1.20 | 2026-08-25       |
+|              8 |        8 |          8.50 |           0.00 |        0.00 |              0.80 | 2026-08-25       |
+|              9 |        9 |         14.50 |           0.00 |        0.00 |              1.10 | 2026-09-05       |
+|             10 |       10 |          9.50 |           0.00 |        0.30 |              0.60 | 2026-09-05       |
+|             11 |       11 |          4.20 |           0.00 |        0.00 |              0.30 | 2026-09-05       |
+|             12 |       12 |          0.00 |         115.00 |        0.00 |              5.50 | 2026-09-12       |
+|             13 |       13 |         80.00 |           0.00 |        2.00 |              3.75 | 2026-09-12       |
+|             14 |       14 |         42.00 |           0.00 |        1.50 |              1.80 | 2026-09-12       |
+|             15 |       15 |         21.00 |           0.00 |        0.00 |              1.40 | 2026-09-12       |
+|             16 |       16 |          0.00 |           0.00 |       20.00 |             15.60 | 2026-09-12       |
++----------------+----------+---------------+----------------+-------------+-------------------+------------------+
+16 rows in set (0.00 sec)
+
+mysql> SELECT * FROM waste_collection;
++---------------+----------+-------------------------+-----------------+-----------------------+-----------------------------+-------------------+
+| collection_id | waste_id | collected_by            | collection_date | quantity_collected_kg | destination                 | collection_status |
++---------------+----------+-------------------------+-----------------+-----------------------+-----------------------------+-------------------+
+|             1 |        1 | EcoClean Services       | 2026-08-20      |                 42.50 | Green Compost Center        | Completed         |
+|             2 |        2 | GreenCycle Recycling    | 2026-08-20      |                 28.75 | GreenCycle Recycling Plant  | Completed         |
+|             3 |        3 | GreenCycle Recycling    | 2026-08-20      |                 18.40 | Paper Recovery Center       | Completed         |
+|             4 |        4 | EcoClean Services       | 2026-08-20      |                 12.60 | Municipal Waste Facility    | Completed         |
+|             5 |        5 | EcoClean Services       | 2026-08-25      |                 65.80 | Green Compost Center        | Completed         |
+|             6 |        6 | GreenCycle Recycling    | 2026-08-25      |                 35.40 | GreenCycle Recycling Plant  | Completed         |
+|             7 |        7 | GreenCycle Recycling    | 2026-08-25      |                 24.70 | Paper Recovery Center       | Completed         |
+|             8 |        8 | MetalRecover Pvt Ltd    | 2026-08-25      |                  9.30 | Metal Recovery Facility     | Completed         |
+|             9 |        9 | GreenCycle Recycling    | 2026-09-05      |                 15.60 | GreenCycle Recycling Plant  | Completed         |
+|            10 |       10 | GreenCycle Recycling    | 2026-09-05      |                 10.40 | Paper Recovery Center       | Completed         |
+|            11 |       11 | TechRecycle Solutions   | 2026-09-05      |                  4.50 | Authorized E-Waste Facility | Completed         |
+|            12 |       12 | EcoClean Services       | 2026-09-12      |                120.50 | Green Compost Center        | Completed         |
+|            13 |       13 | GreenCycle Recycling    | 2026-09-12      |                 85.75 | GreenCycle Recycling Plant  | Completed         |
+|            14 |       14 | GreenCycle Recycling    | 2026-09-12      |                 45.30 | Paper Recovery Center       | Completed         |
+|            15 |       15 | GlassRecover Industries | 2026-09-12      |                 22.40 | Glass Recovery Facility     | Completed         |
+|            16 |       16 | EcoClean Services       | 2026-09-12      |                 35.60 | Municipal Waste Facility    | Completed         |
++---------------+----------+-------------------------+-----------------+-----------------------+-----------------------------+-------------------+
+16 rows in set (0.00 sec)
+
+mysql> SELECT * FROM recovery_partners;
++------------+------------------------------+-------------------+----------------+------------+-------------------------+---------------+--------+
+| partner_id | partner_name                 | partner_type      | contact_person | phone      | email                   | city          | status |
++------------+------------------------------+-------------------+----------------+------------+-------------------------+---------------+--------+
+|          1 | GreenCycle Recycling Pvt Ltd | Recycling         | Mohan Das      | 9877001122 | contact@greencycle.in   | Visakhapatnam | Active |
+|          2 | EcoCompost Solutions         | Composting        | Sanjay Rao     | 9877001133 | info@ecocompost.in      | Visakhapatnam | Active |
+|          3 | TechRecycle Solutions        | E-Waste Recycling | Varun Kumar    | 9877001144 | support@techrecycle.in  | Visakhapatnam | Active |
+|          4 | PaperRecover Industries      | Paper Recycling   | Deepa Menon    | 9877001155 | contact@paperrecover.in | Visakhapatnam | Active |
+|          5 | MetalRecover Pvt Ltd         | Metal Recycling   | Ramesh Babu    | 9877001166 | info@metalrecover.in    | Visakhapatnam | Active |
+|          6 | GlassRecover Industries      | Glass Recycling   | Harish Rao     | 9877001177 | contact@glassrecover.in | Visakhapatnam | Active |
+|          7 | ReuseWorks Foundation        | Reuse             | Anita Sharma   | 9877001188 | hello@reuseworks.org    | Visakhapatnam | Active |
++------------+------------------------------+-------------------+----------------+------------+-------------------------+---------------+--------+
+7 rows in set (0.00 sec)
+
+mysql> SELECT * FROM recovery_records;
++-------------+----------+------------+-------------------+-------------+---------------+---------------------------------+-----------+
+| recovery_id | waste_id | partner_id | recovery_type     | quantity_kg | recovery_date | material_recovered              | status    |
++-------------+----------+------------+-------------------+-------------+---------------+---------------------------------+-----------+
+|           1 |        1 |          2 | Composting        |       40.00 | 2026-08-21    | Compost                         | Completed |
+|           2 |        2 |          1 | Recycling         |       26.50 | 2026-08-21    | Recycled Plastic                | Completed |
+|           3 |        3 |          4 | Recycling         |       17.00 | 2026-08-21    | Recovered Paper                 | Completed |
+|           4 |        4 |          7 | Reuse             |        8.00 | 2026-08-21    | Reusable Decoration Material    | Completed |
+|           5 |        5 |          2 | Composting        |       60.00 | 2026-08-26    | Compost                         | Completed |
+|           6 |        6 |          1 | Recycling         |       33.00 | 2026-08-26    | Recycled Plastic                | Completed |
+|           7 |        7 |          4 | Recycling         |       23.00 | 2026-08-26    | Recovered Paper                 | Completed |
+|           8 |        8 |          5 | Recycling         |        8.50 | 2026-08-26    | Recovered Metal                 | Completed |
+|           9 |        9 |          1 | Recycling         |       14.50 | 2026-09-06    | Recycled Plastic                | Completed |
+|          10 |       10 |          4 | Recycling         |        9.50 | 2026-09-06    | Recovered Paper                 | Completed |
+|          11 |       11 |          3 | E-Waste Recycling |        4.20 | 2026-09-06    | Recovered Electronic Components | Completed |
+|          12 |       12 |          2 | Composting        |      115.00 | 2026-09-13    | Compost                         | Completed |
+|          13 |       13 |          1 | Recycling         |       80.00 | 2026-09-13    | Recycled Plastic                | Completed |
+|          14 |       14 |          4 | Recycling         |       42.00 | 2026-09-13    | Recovered Paper                 | Completed |
+|          15 |       15 |          6 | Recycling         |       21.00 | 2026-09-13    | Recovered Glass                 | Completed |
+|          16 |       16 |          7 | Reuse             |       20.00 | 2026-09-13    | Reusable Materials              | Completed |
++-------------+----------+------------+-------------------+-------------+---------------+---------------------------------+-----------+
+16 rows in set (0.00 sec)
+
+====================
+QUERIES
+============================================================
+                      BASIC QUERIES
+============================================================
+
+1. Display all events
+
+mysql> SELECT *
+    -> FROM events;
++----------+-------------------------------+--------------+----------+-----------------+------------+--------------------+------------------+--------------+
+| event_id | event_name                    | organizer_id | venue_id | event_type      | event_date | expected_attendees | actual_attendees | event_status |
++----------+-------------------------------+--------------+----------+-----------------+------------+--------------------+------------------+--------------+
+|        1 | TechFest 2026                 |            1 |        1 | College Fest    | 2026-08-20 |               1000 |              950 | Completed    |
+|        2 | Green Business Conference     |            2 |        2 | Conference      | 2026-08-25 |               1800 |             1650 | Completed    |
+|        3 | Innovation Summit 2026        |            3 |        3 | Corporate Event | 2026-09-05 |                650 |              620 | Completed    |
+|        4 | Vizag Cultural Festival       |            4 |        4 | Cultural Event  | 2026-09-12 |               4000 |             3800 | Completed    |
+|        5 | Eco Wedding Celebration       |            5 |        5 | Wedding         | 2026-09-20 |               1200 |             1150 | Planned      |
+|        6 | Vizag Technology Expo         |            6 |        6 | Exhibition      | 2026-10-02 |               3000 |                0 | Upcoming     |
+|        7 | Student Entrepreneurship Meet |            1 |        3 | Conference      | 2026-10-10 |                700 |                0 | Upcoming     |
+|        8 | Sustainable Campus Fest       |            2 |        1 | College Fest    | 2026-10-18 |               1100 |                0 | Upcoming     |
++----------+-------------------------------+--------------+----------+-----------------+------------+--------------------+------------------+--------------+
+8 rows in set (0.00 sec)
+
+2. Display event names, types and dates
+
+mysql> SELECT event_name, event_type, event_date
+    -> FROM events;
++-------------------------------+-----------------+------------+
+| event_name                    | event_type      | event_date |
++-------------------------------+-----------------+------------+
+| TechFest 2026                 | College Fest    | 2026-08-20 |
+| Green Business Conference     | Conference      | 2026-08-25 |
+| Innovation Summit 2026        | Corporate Event | 2026-09-05 |
+| Vizag Cultural Festival       | Cultural Event  | 2026-09-12 |
+| Eco Wedding Celebration       | Wedding         | 2026-09-20 |
+| Vizag Technology Expo         | Exhibition      | 2026-10-02 |
+| Student Entrepreneurship Meet | Conference      | 2026-10-10 |
+| Sustainable Campus Fest       | College Fest    | 2026-10-18 |
++-------------------------------+-----------------+------------+
+8 rows in set (0.00 sec)
+
+3. Display completed events
+
+mysql> SELECT event_name, event_date, event_status
+    -> FROM events
+    -> WHERE event_status = 'Completed';
++---------------------------+------------+--------------+
+| event_name                | event_date | event_status |
++---------------------------+------------+--------------+
+| TechFest 2026             | 2026-08-20 | Completed    |
+| Green Business Conference | 2026-08-25 | Completed    |
+| Innovation Summit 2026    | 2026-09-05 | Completed    |
+| Vizag Cultural Festival   | 2026-09-12 | Completed    |
++---------------------------+------------+--------------+
+4 rows in set (0.01 sec)
+
+4. Display reusable resources
+
+mysql> SELECT resource_name, quantity_available, condition_status
+    -> FROM resources
+    -> WHERE reusable = TRUE;
++--------------------------+--------------------+------------------+
+| resource_name            | quantity_available | condition_status |
++--------------------------+--------------------+------------------+
+| Plastic Chairs           |                500 | Good             |
+| Folding Tables           |                100 | Good             |
+| Decorative Banners       |                 80 | Good             |
+| Stage Backdrops          |                 25 | Good             |
+| Reusable Food Containers |               2000 | Good             |
+| Water Dispensers         |                 30 | Good             |
+| LED Lights               |                100 | Good             |
+| Portable Speakers        |                 25 | Good             |
+| Directional Sign Boards  |                 60 | Good             |
+| Waste Bins               |                150 | Good             |
+| Cleaning Kits            |                 50 | Good             |
++--------------------------+--------------------+------------------+
+11 rows in set (0.00 sec)
+
+5. Display recyclable waste categories
+
+mysql> SELECT category_name, disposal_method
+    -> FROM waste_categories
+    -> WHERE recyclable = TRUE;
++------------------+------------------------------+
+| category_name    | disposal_method              |
++------------------+------------------------------+
+| Plastic          | Recycling                    |
+| Paper            | Recycling                    |
+| Glass            | Recycling                    |
+| Metal            | Recycling                    |
+| E-Waste          | Authorized E-Waste Recycling |
+| Decorative Waste | Reuse or Recycling           |
++------------------+------------------------------+
+6 rows in set (0.00 sec)
+
+6. Display events with more than 1000 expected attendees
+
+mysql> SELECT event_name, expected_attendees
+    -> FROM events
+    -> WHERE expected_attendees > 1000;
++---------------------------+--------------------+
+| event_name                | expected_attendees |
++---------------------------+--------------------+
+| Green Business Conference |               1800 |
+| Vizag Cultural Festival   |               4000 |
+| Eco Wedding Celebration   |               1200 |
+| Vizag Technology Expo     |               3000 |
+| Sustainable Campus Fest   |               1100 |
++---------------------------+--------------------+
+5 rows in set (0.00 sec)
+
+7. Display waste records greater than 30 kg
+
+mysql> SELECT waste_id, quantity_kg, source_area
+    -> FROM waste_records
+    -> WHERE quantity_kg > 30;
++----------+-------------+------------------+
+| waste_id | quantity_kg | source_area      |
++----------+-------------+------------------+
+|        1 |       42.50 | Food Court       |
+|        5 |       65.80 | Dining Area      |
+|        6 |       35.40 | Conference Hall  |
+|       12 |      120.50 | Food Area        |
+|       13 |       85.75 | Festival Grounds |
+|       14 |       45.30 | Entry Area       |
+|       16 |       35.60 | General Area     |
++----------+-------------+------------------+
+7 rows in set (0.00 sec)
+
+8. Display events according to expected attendance
+
+mysql> SELECT event_name, expected_attendees
+    -> FROM events
+    -> ORDER BY expected_attendees DESC;
++-------------------------------+--------------------+
+| event_name                    | expected_attendees |
++-------------------------------+--------------------+
+| Vizag Cultural Festival       |               4000 |
+| Vizag Technology Expo         |               3000 |
+| Green Business Conference     |               1800 |
+| Eco Wedding Celebration       |               1200 |
+| Sustainable Campus Fest       |               1100 |
+| TechFest 2026                 |               1000 |
+| Student Entrepreneurship Meet |                700 |
+| Innovation Summit 2026        |                650 |
++-------------------------------+--------------------+
+8 rows in set (0.00 sec)
+
+9. Display the top 5 highest waste records
+
+mysql> SELECT waste_id, quantity_kg, source_area
+    -> FROM waste_records
+    -> ORDER BY quantity_kg DESC
+    -> LIMIT 5;
++----------+-------------+------------------+
+| waste_id | quantity_kg | source_area      |
++----------+-------------+------------------+
+|       12 |      120.50 | Food Area        |
+|       13 |       85.75 | Festival Grounds |
+|        5 |       65.80 | Dining Area      |
+|       14 |       45.30 | Entry Area       |
+|        1 |       42.50 | Food Court       |
++----------+-------------+------------------+
+5 rows in set (0.00 sec)
+
+10. Count the total number of events
+
+mysql> SELECT COUNT(*) AS total_events
+    -> FROM events;
++--------------+
+| total_events |
++--------------+
+|            8 |
++--------------+
+1 row in set (0.01 sec)
+
+11. Calculate the total waste generated
+
+mysql> SELECT SUM(quantity_kg) AS total_waste_kg
+    -> FROM waste_records;
++----------------+
+| total_waste_kg |
++----------------+
+|         577.50 |
++----------------+
+1 row in set (0.00 sec)
+
+============================================================
+                   INTERMEDIATE QUERIES
+============================================================
+
+12. Count events according to event type
+
+mysql> SELECT event_type, COUNT(*) AS total_events
+    -> FROM events
+    -> GROUP BY event_type;
++-----------------+--------------+
+| event_type      | total_events |
++-----------------+--------------+
+| College Fest    |            2 |
+| Conference      |            2 |
+| Corporate Event |            1 |
+| Cultural Event  |            1 |
+| Wedding         |            1 |
+| Exhibition      |            1 |
++-----------------+--------------+
+6 rows in set (0.00 sec)
+
+13. Calculate total waste generated by each event
+
+mysql> SELECT event_id, SUM(quantity_kg) AS total_waste_kg
+    -> FROM waste_records
+    -> GROUP BY event_id
+    -> ORDER BY total_waste_kg DESC;
++----------+----------------+
+| event_id | total_waste_kg |
++----------+----------------+
+|        4 |         309.55 |
+|        2 |         135.20 |
+|        1 |         102.25 |
+|        3 |          30.50 |
++----------+----------------+
+4 rows in set (0.00 sec)
+
+14. Calculate total recovered material by recovery type
+
+mysql> SELECT recovery_type, SUM(quantity_kg) AS total_recovered_kg
+    -> FROM recovery_records
+    -> GROUP BY recovery_type;
++-------------------+--------------------+
+| recovery_type     | total_recovered_kg |
++-------------------+--------------------+
+| Composting        |             215.00 |
+| Recycling         |             275.00 |
+| Reuse             |              28.00 |
+| E-Waste Recycling |               4.20 |
++-------------------+--------------------+
+4 rows in set (0.00 sec)
+
+15. Find events that generated more than 50 kg of waste
+
+mysql> SELECT event_id, SUM(quantity_kg) AS total_waste_kg
+    -> FROM waste_records
+    -> GROUP BY event_id
+    -> HAVING SUM(quantity_kg) > 50;
++----------+----------------+
+| event_id | total_waste_kg |
++----------+----------------+
+|        1 |         102.25 |
+|        2 |         135.20 |
+|        4 |         309.55 |
++----------+----------------+
+3 rows in set (0.00 sec)
+
+16. Display events with their organizer names
+
+mysql> SELECT
+    ->     e.event_name,
+    ->     o.organizer_name,
+    ->     e.event_type,
+    ->     e.event_date
+    -> FROM events e
+    -> INNER JOIN event_organizers o
+    -> ON e.organizer_id = o.organizer_id;
++-------------------------------+--------------------------------+-----------------+------------+
+| event_name                    | organizer_name                 | event_type      | event_date |
++-------------------------------+--------------------------------+-----------------+------------+
+| TechFest 2026                 | Vignan Institute of Technology | College Fest    | 2026-08-20 |
+| Student Entrepreneurship Meet | Vignan Institute of Technology | Conference      | 2026-10-10 |
+| Green Business Conference     | Green Events India             | Conference      | 2026-08-25 |
+| Sustainable Campus Fest       | Green Events India             | College Fest    | 2026-10-18 |
+| Innovation Summit 2026        | TechSphere Solutions           | Corporate Event | 2026-09-05 |
+| Vizag Cultural Festival       | Coastal Cultural Society       | Cultural Event  | 2026-09-12 |
+| Eco Wedding Celebration       | BlueSky Wedding Planners       | Wedding         | 2026-09-20 |
+| Vizag Technology Expo         | Vizag Exhibition Committee     | Exhibition      | 2026-10-02 |
++-------------------------------+--------------------------------+-----------------+------------+
+8 rows in set (0.00 sec)
+
+17. Display events with their venue details
+
+mysql> SELECT
+    ->     e.event_name,
+    ->     v.venue_name,
+    ->     v.city,
+    ->     v.capacity
+    -> FROM events e
+    -> INNER JOIN venues v
+    -> ON e.venue_id = v.venue_id;
++-------------------------------+---------------------------+---------------+----------+
+| event_name                    | venue_name                | city          | capacity |
++-------------------------------+---------------------------+---------------+----------+
+| TechFest 2026                 | Vignan College Auditorium | Visakhapatnam |     1200 |
+| Sustainable Campus Fest       | Vignan College Auditorium | Visakhapatnam |     1200 |
+| Green Business Conference     | Vizag Convention Centre   | Visakhapatnam |     2500 |
+| Innovation Summit 2026        | Tech Park Conference Hall | Visakhapatnam |      800 |
+| Student Entrepreneurship Meet | Tech Park Conference Hall | Visakhapatnam |      800 |
+| Vizag Cultural Festival       | Beach Road Open Grounds   | Visakhapatnam |     5000 |
+| Eco Wedding Celebration       | Haritha Grand Hall        | Visakhapatnam |     1500 |
+| Vizag Technology Expo         | City Exhibition Grounds   | Visakhapatnam |     3500 |
++-------------------------------+---------------------------+---------------+----------+
+8 rows in set (0.00 sec)
+
+18. Display resources with their categories
+
+mysql> SELECT
+    ->     r.resource_name,
+    ->     rc.category_name,
+    ->     r.quantity_available,
+    ->     r.condition_status
+    -> FROM resources r
+    -> INNER JOIN resource_categories rc
+    -> ON r.category_id = rc.category_id;
++--------------------------+-----------------------+--------------------+------------------+
+| resource_name            | category_name         | quantity_available | condition_status |
++--------------------------+-----------------------+--------------------+------------------+
+| Plastic Chairs           | Furniture             |                500 | Good             |
+| Folding Tables           | Furniture             |                100 | Good             |
+| Decorative Banners       | Decoration            |                 80 | Good             |
+| Stage Backdrops          | Decoration            |                 25 | Good             |
+| Reusable Food Containers | Food Service          |               2000 | Good             |
+| Water Dispensers         | Food Service          |                 30 | Good             |
+| LED Lights               | Electrical            |                100 | Good             |
+| Portable Speakers        | Electrical            |                 25 | Good             |
+| Promotional Posters      | Promotional Materials |                300 | New              |
+| Directional Sign Boards  | Promotional Materials |                 60 | Good             |
+| Waste Bins               | Cleaning Equipment    |                150 | Good             |
+| Cleaning Kits            | Cleaning Equipment    |                 50 | Good             |
++--------------------------+-----------------------+--------------------+------------------+
+12 rows in set (0.00 sec)
+
+19. Display waste records with event and waste category
+
+mysql> SELECT
+    ->     e.event_name,
+    ->     wc.category_name,
+    ->     w.quantity_kg,
+    ->     w.source_area
+    -> FROM waste_records w
+    -> INNER JOIN events e
+    -> ON w.event_id = e.event_id
+    -> INNER JOIN waste_categories wc
+    -> ON w.waste_category_id = wc.waste_category_id;
++---------------------------+---------------+-------------+-------------------+
+| event_name                | category_name | quantity_kg | source_area       |
++---------------------------+---------------+-------------+-------------------+
+| TechFest 2026             | Food Waste    |       42.50 | Food Court        |
+| TechFest 2026             | Plastic       |       28.75 | Food Court        |
+| TechFest 2026             | Paper         |       18.40 | Registration Area |
+| TechFest 2026             | Mixed Waste   |       12.60 | Main Stage        |
+| Green Business Conference | Food Waste    |       65.80 | Dining Area       |
+| Green Business Conference | Plastic       |       35.40 | Conference Hall   |
+| Green Business Conference | Paper         |       24.70 | Conference Hall   |
+| Green Business Conference | Metal         |        9.30 | Refreshment Area  |
+| Innovation Summit 2026    | Plastic       |       15.60 | Networking Area   |
+| Innovation Summit 2026    | Paper         |       10.40 | Conference Hall   |
+| Innovation Summit 2026    | E-Waste       |        4.50 | Technology Zone   |
+| Vizag Cultural Festival   | Food Waste    |      120.50 | Food Area         |
+| Vizag Cultural Festival   | Plastic       |       85.75 | Festival Grounds  |
+| Vizag Cultural Festival   | Paper         |       45.30 | Entry Area        |
+| Vizag Cultural Festival   | Glass         |       22.40 | Festival Grounds  |
+| Vizag Cultural Festival   | Mixed Waste   |       35.60 | General Area      |
++---------------------------+---------------+-------------+-------------------+
+16 rows in set (0.00 sec)
+
+20. Display all events and their waste records
+
+mysql> SELECT
+    ->     e.event_name,
+    ->     w.waste_id,
+    ->     w.quantity_kg
+    -> FROM events e
+    -> LEFT JOIN waste_records w
+    -> ON e.event_id = w.event_id;
++-------------------------------+----------+-------------+
+| event_name                    | waste_id | quantity_kg |
++-------------------------------+----------+-------------+
+| TechFest 2026                 |        1 |       42.50 |
+| TechFest 2026                 |        2 |       28.75 |
+| TechFest 2026                 |        3 |       18.40 |
+| TechFest 2026                 |        4 |       12.60 |
+| Green Business Conference     |        5 |       65.80 |
+| Green Business Conference     |        6 |       35.40 |
+| Green Business Conference     |        7 |       24.70 |
+| Green Business Conference     |        8 |        9.30 |
+| Innovation Summit 2026        |        9 |       15.60 |
+| Innovation Summit 2026        |       10 |       10.40 |
+| Innovation Summit 2026        |       11 |        4.50 |
+| Vizag Cultural Festival       |       12 |      120.50 |
+| Vizag Cultural Festival       |       13 |       85.75 |
+| Vizag Cultural Festival       |       14 |       45.30 |
+| Vizag Cultural Festival       |       15 |       22.40 |
+| Vizag Cultural Festival       |       16 |       35.60 |
+| Eco Wedding Celebration       |     NULL |        NULL |
+| Vizag Technology Expo         |     NULL |        NULL |
+| Student Entrepreneurship Meet |     NULL |        NULL |
+| Sustainable Campus Fest       |     NULL |        NULL |
++-------------------------------+----------+-------------+
+20 rows in set (0.00 sec)
+
+21. Display staff members and their assigned events
+
+mysql> SELECT
+    ->     s.person_name,
+    ->     s.role,
+    ->     e.event_name
+    -> FROM staff_volunteers s
+    -> INNER JOIN events e
+    -> ON s.event_id = e.event_id;
++--------------+-------------------+---------------------------+
+| person_name  | role              | event_name                |
++--------------+-------------------+---------------------------+
+| Arjun Reddy  | Waste Coordinator | TechFest 2026             |
+| Sneha Rao    | Volunteer         | TechFest 2026             |
+| Kiran Kumar  | Cleaning Staff    | TechFest 2026             |
+| Meera Sharma | Event Supervisor  | Green Business Conference |
+| Rohit Singh  | Waste Coordinator | Green Business Conference |
+| Divya Patel  | Volunteer         | Green Business Conference |
+| Aakash Verma | Resource Manager  | Innovation Summit 2026    |
+| Pooja Nair   | Volunteer         | Innovation Summit 2026    |
+| Ravi Teja    | Waste Coordinator | Vizag Cultural Festival   |
+| Anusha Devi  | Cleaning Staff    | Vizag Cultural Festival   |
+| Nikhil Rao   | Event Supervisor  | Eco Wedding Celebration   |
+| Kavya Reddy  | Volunteer         | Eco Wedding Celebration   |
++--------------+-------------------+---------------------------+
+12 rows in set (0.00 sec)
+
+22. Display event tasks with staff names
+
+mysql> SELECT
+    ->     t.task_name,
+    ->     t.task_status,
+    ->     s.person_name,
+    ->     e.event_name
+    -> FROM event_tasks t
+    -> INNER JOIN staff_volunteers s
+    -> ON t.person_id = s.person_id
+    -> INNER JOIN events e
+    -> ON t.event_id = e.event_id;
++------------------------+-------------+--------------+---------------------------+
+| task_name              | task_status | person_name  | event_name                |
++------------------------+-------------+--------------+---------------------------+
+| Waste Bin Setup        | Completed   | Arjun Reddy  | TechFest 2026             |
+| Waste Segregation      | Completed   | Sneha Rao    | TechFest 2026             |
+| Venue Cleaning         | Completed   | Kiran Kumar  | TechFest 2026             |
+| Event Coordination     | Completed   | Meera Sharma | Green Business Conference |
+| Waste Monitoring       | Completed   | Rohit Singh  | Green Business Conference |
+| Recyclable Collection  | Completed   | Divya Patel  | Green Business Conference |
+| Resource Setup         | Completed   | Aakash Verma | Innovation Summit 2026    |
+| Waste Monitoring       | Completed   | Pooja Nair   | Innovation Summit 2026    |
+| Waste Collection       | Completed   | Ravi Teja    | Vizag Cultural Festival   |
+| Venue Cleaning         | Completed   | Anusha Devi  | Vizag Cultural Festival   |
+| Resource Inspection    | Pending     | Nikhil Rao   | Eco Wedding Celebration   |
+| Waste Management Setup | Pending     | Kavya Reddy  | Eco Wedding Celebration   |
++------------------------+-------------+--------------+---------------------------+
+12 rows in set (0.00 sec)
+ 
+============================================================
+                      ADVANCED QUERIES
+============================================================
+
+ 23. Find waste records above the average waste quantity
+
+mysql> SELECT
+    ->     waste_id,
+    ->     quantity_kg,
+    ->     source_area
+    -> FROM waste_records
+    -> WHERE quantity_kg >
+    -> (
+    ->     SELECT AVG(quantity_kg)
+    ->     FROM waste_records
+    -> );
++----------+-------------+------------------+
+| waste_id | quantity_kg | source_area      |
++----------+-------------+------------------+
+|        1 |       42.50 | Food Court       |
+|        5 |       65.80 | Dining Area      |
+|       12 |      120.50 | Food Area        |
+|       13 |       85.75 | Festival Grounds |
+|       14 |       45.30 | Entry Area       |
++----------+-------------+------------------+
+5 rows in set (0.00 sec)
+
+24. Find the event with the highest expected attendance
+
+mysql> SELECT
+    ->     event_name,
+    ->     expected_attendees
+    -> FROM events
+    -> WHERE expected_attendees =
+    -> (
+    ->     SELECT MAX(expected_attendees)
+    ->     FROM events
+    -> );
++-------------------------+--------------------+
+| event_name              | expected_attendees |
++-------------------------+--------------------+
+| Vizag Cultural Festival |               4000 |
++-------------------------+--------------------+
+1 row in set (0.00 sec)
+
+25. Categorize events based on expected attendance
+
+mysql> SELECT
+    ->     event_name,
+    ->     expected_attendees,
+    ->     CASE
+    ->         WHEN expected_attendees >= 3000
+    ->             THEN 'Large Event'
+    ->         WHEN expected_attendees >= 1000
+    ->             THEN 'Medium Event'
+    ->         ELSE 'Small Event'
+    ->     END AS event_size
+    -> FROM events;
++-------------------------------+--------------------+--------------+
+| event_name                    | expected_attendees | event_size   |
++-------------------------------+--------------------+--------------+
+| TechFest 2026                 |               1000 | Medium Event |
+| Green Business Conference     |               1800 | Medium Event |
+| Innovation Summit 2026        |                650 | Small Event  |
+| Vizag Cultural Festival       |               4000 | Large Event  |
+| Eco Wedding Celebration       |               1200 | Medium Event |
+| Vizag Technology Expo         |               3000 | Large Event  |
+| Student Entrepreneurship Meet |                700 | Small Event  |
+| Sustainable Campus Fest       |               1100 | Medium Event |
++-------------------------------+--------------------+--------------+
+8 rows in set (0.00 sec)
+
+26. Calculate resource utilization
+
+mysql> SELECT
+    ->     r.resource_name,
+    ->     SUM(ra.quantity_allocated) AS total_allocated,
+    ->     SUM(ra.quantity_used) AS total_used,
+    ->     SUM(ra.quantity_returned) AS total_returned,
+    ->     SUM(ra.quantity_damaged) AS total_damaged
+    -> FROM resources r
+    -> INNER JOIN resource_allocations ra
+    -> ON r.resource_id = ra.resource_id
+    -> GROUP BY r.resource_id, r.resource_name
+    -> ORDER BY total_used DESC;
++--------------------------+-----------------+------------+----------------+---------------+
+| resource_name            | total_allocated | total_used | total_returned | total_damaged |
++--------------------------+-----------------+------------+----------------+---------------+
+| Plastic Chairs           |            1450 |       1155 |           1182 |            18 |
+| Reusable Food Containers |            1800 |        760 |            780 |            20 |
+| Waste Bins               |             220 |        220 |            220 |             0 |
+| Folding Tables           |             100 |         93 |             97 |             3 |
+| Decorative Banners       |              60 |         53 |             56 |             4 |
+| LED Lights               |              30 |         30 |             30 |             0 |
+| Portable Speakers        |              10 |         10 |             10 |             0 |
++--------------------------+-----------------+------------+----------------+---------------+
+7 rows in set (0.00 sec)
+
+27. Calculate recyclable, compostable and reusable material generated by each event
+
+mysql> SELECT
+    ->     e.event_name,
+    ->     SUM(ws.recyclable_kg) AS recyclable_kg,
+    ->     SUM(ws.compostable_kg) AS compostable_kg,
+    ->     SUM(ws.reusable_kg) AS reusable_kg,
+    ->     SUM(ws.non_recyclable_kg) AS non_recyclable_kg
+    -> FROM events e
+    -> INNER JOIN waste_records w
+    -> ON e.event_id = w.event_id
+    -> INNER JOIN waste_segregation ws
+    -> ON w.waste_id = ws.waste_id
+    -> GROUP BY e.event_id, e.event_name
+    -> ORDER BY e.event_name;
++---------------------------+---------------+----------------+-------------+-------------------+
+| event_name                | recyclable_kg | compostable_kg | reusable_kg | non_recyclable_kg |
++---------------------------+---------------+----------------+-------------+-------------------+
+| Green Business Conference |         64.50 |          60.00 |        0.50 |             10.20 |
+| Innovation Summit 2026    |         28.20 |           0.00 |        0.30 |              2.00 |
+| TechFest 2026             |         43.50 |          40.00 |        8.50 |             10.25 |
+| Vizag Cultural Festival   |        143.00 |         115.00 |       23.50 |             28.05 |
++---------------------------+---------------+----------------+-------------+-------------------+
+4 rows in set (0.00 sec)
+
+28. Display total recovered material by each partner
+
+mysql> SELECT
+    ->     rp.partner_name,
+    ->     rp.partner_type,
+    ->     SUM(rr.quantity_kg) AS total_recovered_kg
+    -> FROM recovery_partners rp
+    -> INNER JOIN recovery_records rr
+    -> ON rp.partner_id = rr.partner_id
+    -> GROUP BY rp.partner_id, rp.partner_name, rp.partner_type
+    -> ORDER BY total_recovered_kg DESC;
++------------------------------+-------------------+--------------------+
+| partner_name                 | partner_type      | total_recovered_kg |
++------------------------------+-------------------+--------------------+
+| EcoCompost Solutions         | Composting        |             215.00 |
+| GreenCycle Recycling Pvt Ltd | Recycling         |             154.00 |
+| PaperRecover Industries      | Paper Recycling   |              91.50 |
+| ReuseWorks Foundation        | Reuse             |              28.00 |
+| GlassRecover Industries      | Glass Recycling   |              21.00 |
+| MetalRecover Pvt Ltd         | Metal Recycling   |               8.50 |
+| TechRecycle Solutions        | E-Waste Recycling |               4.20 |
++------------------------------+-------------------+--------------------+
+7 rows in set (0.00 sec)
+
+29. Calculate overall waste recovery percentage
+
+mysql> SELECT
+    ->     ROUND(
+    ->         (
+    ->             SELECT SUM(quantity_kg)
+    ->             FROM recovery_records
+    ->         )
+    ->         /
+    ->         (
+    ->             SELECT SUM(quantity_kg)
+    ->             FROM waste_records
+    ->         ) * 100,
+    ->         2
+    ->     ) AS recovery_percentage;
++---------------------+
+| recovery_percentage |
++---------------------+
+|               90.42 |
++---------------------+
+1 row in set (0.00 sec)
+
+30. Find the event that generated the highest amount of waste
+
+mysql> SELECT
+    ->     e.event_name,
+    ->     SUM(w.quantity_kg) AS total_waste_kg
+    -> FROM events e
+    -> INNER JOIN waste_records w
+    -> ON e.event_id = w.event_id
+    -> GROUP BY e.event_id, e.event_name
+    -> ORDER BY total_waste_kg DESC
+    -> LIMIT 1;
++-------------------------+----------------+
+| event_name              | total_waste_kg |
++-------------------------+----------------+
+| Vizag Cultural Festival |         309.55 |
++-------------------------+----------------+
+1 row in set (0.00 sec)
+
+ ============================================================
+                FINAL PROJECT DASHBOARD
+ ============================================================
+31. Overall project statistics
+
+mysql> SELECT
+    ->     (SELECT COUNT(*) FROM events) AS total_events,
+    ->
+    ->     (SELECT COUNT(*) FROM resources) AS total_resources,
+    ->
+    ->     (SELECT SUM(quantity_kg)
+    ->      FROM waste_records) AS total_waste_kg,
+    ->
+    ->     (SELECT SUM(recyclable_kg)
+    ->      FROM waste_segregation) AS total_recyclable_kg,
+    ->
+    ->     (SELECT SUM(compostable_kg)
+    ->      FROM waste_segregation) AS total_compostable_kg,
+    ->
+    ->     (SELECT SUM(reusable_kg)
+    ->      FROM waste_segregation) AS total_reusable_kg,
+    ->
+    ->     (SELECT SUM(quantity_kg)
+    ->      FROM recovery_records) AS total_recovered_kg;
++--------------+-----------------+----------------+---------------------+----------------------+-------------------+--------------------+
+| total_events | total_resources | total_waste_kg | total_recyclable_kg | total_compostable_kg | total_reusable_kg | total_recovered_kg |
++--------------+-----------------+----------------+---------------------+----------------------+-------------------+--------------------+
+|            8 |              12 |         577.50 |              279.20 |               215.00 |             32.80 |             522.20 |
++--------------+-----------------+----------------+---------------------+----------------------+-------------------+--------------------+
+1 row in set (0.00 sec)
+
+32. Complete event sustainability report
+
+mysql> SELECT
+    ->     e.event_name,
+    ->
+    ->     e.expected_attendees,
+    ->
+    ->     e.actual_attendees,
+    ->
+    ->     COALESCE(SUM(w.quantity_kg), 0)
+    ->         AS total_waste_kg,
+    ->
+    ->     COALESCE(SUM(ws.recyclable_kg), 0)
+    ->         AS recyclable_kg,
+    ->
+    ->     COALESCE(SUM(ws.compostable_kg), 0)
+    ->         AS compostable_kg,
+    ->     COALESCE(SUM(ws.reusable_kg), 0)
+    ->         AS reusable_kg,
+    ->
+    ->     COALESCE(SUM(ws.non_recyclable_kg), 0)
+    ->         AS non_recyclable_kg
+    ->
+    -> FROM events e
+    ->
+    -> LEFT JOIN waste_records w
+    -> ON e.event_id = w.event_id
+    ->
+    -> LEFT JOIN waste_segregation ws
+    -> ON w.waste_id = ws.waste_id
+    ->
+    -> GROUP BY
+    ->     e.event_id,
+    ->     e.event_name,
+    ->     e.expected_attendees,
+    ->     e.actual_attendees
+    ->
+    -> ORDER BY total_waste_kg DESC;
++-------------------------------+--------------------+------------------+----------------+---------------+----------------+-------------+-------------------+
+| event_name                    | expected_attendees | actual_attendees | total_waste_kg | recyclable_kg | compostable_kg | reusable_kg | non_recyclable_kg |
++-------------------------------+--------------------+------------------+----------------+---------------+----------------+-------------+-------------------+
+| Vizag Cultural Festival       |               4000 |             3800 |         309.55 |        143.00 |         115.00 |       23.50 |             28.05 |
+| Green Business Conference     |               1800 |             1650 |         135.20 |         64.50 |          60.00 |        0.50 |             10.20 |
+| TechFest 2026                 |               1000 |              950 |         102.25 |         43.50 |          40.00 |        8.50 |             10.25 |
+| Innovation Summit 2026        |                650 |              620 |          30.50 |         28.20 |           0.00 |        0.30 |              2.00 |
+| Eco Wedding Celebration       |               1200 |             1150 |           0.00 |          0.00 |           0.00 |        0.00 |              0.00 |
+| Vizag Technology Expo         |               3000 |                0 |           0.00 |          0.00 |           0.00 |        0.00 |              0.00 |
+| Student Entrepreneurship Meet |                700 |                0 |           0.00 |          0.00 |           0.00 |        0.00 |              0.00 |
+| Sustainable Campus Fest       |               1100 |                0 |           0.00 |          0.00 |           0.00 |        0.00 |              0.00 |
++-------------------------------+--------------------+------------------+----------------+---------------+----------------+-------------+-------------------+
+8 rows in set (0.01 sec)
